@@ -48,7 +48,16 @@ client.on(
         // console.log(payload)}
 
         console.log(payload.toString());
-
+        client.publish(
+            topicResponse,
+            "hi",
+            { qos: 1, retain: false },
+            (error) => {
+                if (error) {
+                    console.error(error);
+                }
+            }
+        );
 
     }
     // console.log("Message: ", topic, payload.toString());
