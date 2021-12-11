@@ -10,6 +10,7 @@ const AppointmentSchema = new Schema({
     ref: "User",
   },
   dentist: { type: mongoose.Schema.Types.ObjectId, ref: "Dentist" },
+  color: { type: String },
 });
 
 module.exports = mongoose.model("Appointment", AppointmentSchema);

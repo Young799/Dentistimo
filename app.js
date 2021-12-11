@@ -70,34 +70,41 @@ client.on("message", (topic, payload) => {
 
   //get all appointment from the clinic
 
-  Appointment.find({ dentist: "61a37438f112e8155255a91b" }, function (err, appointments) {
-    if (err) {
-      return next(err);
-    }
-
-    let appointmentsArray = appointments;
-
-    console.log("Appointemnts!!", appointments);
-    appointmentsArray.forEach((appointment) => {
-      console.log(appointment.start)
-      if (appointment.start == request.start) {
-        numberOfAppointments++;
+  Appointment.find(
+    { dentist: "61a37438f112e8155255a91b" },
+    function (err, appointments) {
+      if (err) {
+        return next(err);
       }
-    });
-    console.log(numberOfAppointments);
 
-    //     if (numberOfAppointments < numberOfDentists) {
-    //       //confirm the new booking
-    //       let newAppointment = new Appointment(newRequest)
-    //       newAppointment.save(function (error) {
-    //         if (error) {
-    //           console.log("unable to save the request")
-    //         } console.log("successfully saved")
-    //       })
-    //     }
+      let appointmentsArray = appointments;
 
-    //     else{
-    //       console.log("Not Approved")
-    //     }
-  });
+      console.log("Appointemnts!!", appointments);
+      appointmentsArray.forEach((appointment) => {
+        console.log(appointment.start);
+        if (appointment.start == request.start) {
+          numberOfAppointments++;
+        }
+      });
+      console.log("Current Appointments ", numberOfAppointments);
+
+      if (numberOfAppointments < numberOfDentists) {
+        //confirm the new booking
+        console.log("Slot Available!!!");
+
+        let newAppointment = new Appointment(newRequest)
+
+        newAppointment.save(function(error,savedAppointment){
+          if(error){
+            console.log(error)
+          }
+
+          console.log(savedAppointment)
+
+        })
+      } else {
+        console.log("Huh??!!");
+      }
+    }
+  );
 });
