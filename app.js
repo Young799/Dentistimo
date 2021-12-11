@@ -30,7 +30,8 @@ let options = { clientId: "mqtt03", clean: true };
 let client = mqtt.connect("mqtt://localhost:1883", options);
 
 let topic = "newappointment";
-let topicResponse = "allnewappointment";
+let topicResponse1 = "appointments/approved";
+let topicResponse2 = "appointments/notapproved";
 
 let data = [];
 
@@ -41,80 +42,62 @@ client.on("connect", () => {
   });
 });
 
-client.on(
-  "message",
-  (topic, payload) => {
-    // data = payload.toJSON();
-    // for (item in data){
-    // console.log(payload)}
+client.on("message", (topic, payload) => {
+  // data = payload.toJSON();
+  // for (item in data){
+  // console.log(payload)}
 
-    console.log(payload.toString());
-    client.publish(topicResponse, "hi", { qos: 1, retain: false }, (error) => {
-      if (error) {
-        console.error(error);
-      }
-    })
+  console.log(payload.toString());
 
+  let request = JSON.parse(payload);
 
-    let request = JSON.parse(payload)
-    let newRequest = {
-      name: request.name,
-      user: request.user,
-      start: request.start,
-      end: request.end,
-      dentist: request.dentist,
-      color: request.color,
-      availableDentist: request.dentists
+  let numberOfDentists = request.numberOfDentists;
+  let numberOfAppointments = 0;
+
+  console.log("Dentists: ", numberOfDentists);
+
+  let newRequest = {
+    name: request.name,
+    user: request.user,
+    start: request.start,
+    end: request.end,
+    dentist: request.dentist,
+    color: request.color,
+  };
+
+  console.log("New Request Incoming: ", newRequest);
+  console.log("Current Dentist: ", request.dentist);
+
+  //get all appointment from the clinic
+
+  Appointment.find({ dentist: "61a37438f112e8155255a91b" }, function (err, appointments) {
+    if (err) {
+      return next(err);
     }
 
+    let appointmentsArray = appointments;
 
-
-    //get all appointment from the clinic 
-    let numberOfAppointment = 0
-
-    Appointment.find(
-      { dentist: request.dentist },
-      function (err, appointments) {
-        if (err) {
-          return next(err);
-        }
-
-        console.log("Appointemnts!!", appointments);
-        appointments.array.forEach(appointment => {
-          if (appointment.start == request.start) {
-            numberOfAppointment++
-          }
-        }
-        );
-        if (numberOfAppointment < request.dentist) {
-          //confirm the new booking
-          let newAppointment = new Appointment(newRequest)
-          newAppointment.save(function (error) {
-            if (error) {
-              console.log("unable to save the request")
-            } console.log("successfully saved")
-          })
-        }
-
-
-
-        let appointmentsJson = JSON.stringify(appointments);
-        // let usersJson = users.toJSON();
-
-        console.log("RESPONSE ", appointmentsJson);
-        client.publish(
-          topicResponse,
-          appointmentsJson,
-          { qos: 1, retain: false },
-          (error) => {
-            if (error) {
-              console.error(error);
-            }
-          }
-        );
+    console.log("Appointemnts!!", appointments);
+    appointmentsArray.forEach((appointment) => {
+      console.log(appointment.start)
+      if (appointment.start == request.start) {
+        numberOfAppointments++;
       }
-    );
-  }
+    });
+    console.log(numberOfAppointments);
 
-  // console.log("Message: ", topic, payload.toString());
-);
+    //     if (numberOfAppointments < numberOfDentists) {
+    //       //confirm the new booking
+    //       let newAppointment = new Appointment(newRequest)
+    //       newAppointment.save(function (error) {
+    //         if (error) {
+    //           console.log("unable to save the request")
+    //         } console.log("successfully saved")
+    //       })
+    //     }
+
+    //     else{
+    //       console.log("Not Approved")
+    //     }
+  });
+});
