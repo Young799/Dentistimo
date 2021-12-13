@@ -30,10 +30,8 @@ let options = { clientId: "mqtt03", clean: true };
 let client = mqtt.connect("mqtt://localhost:1883", options);
 
 let topic = "newappointment";
-let topicResponse1 = "appointments/approved";
-let topicResponse2 = "appointments/notapproved";
-
-let data = [];
+let topicResponse1 = "ui/approved";
+let topicResponse2 = "ui/notapproved";
 
 client.on("connect", () => {
   console.log("Connected Now!!");
@@ -83,6 +81,14 @@ client.on("message", (topic, payload) => {
       if (appointment.start == request.start) {
         numberOfAppointments++;
       }
+
+      //Duplicate User
+      if (
+        appointment.start == request.start &&
+        appointment.user == request.user
+      ) {
+        numberOfAppointments += 3;
+      }
     });
     console.log("Current Appointments ", numberOfAppointments);
 
@@ -98,9 +104,30 @@ client.on("message", (topic, payload) => {
         }
 
         console.log(savedAppointment);
+
+        client.publish(
+          topicResponse1,
+          "APPROVED",
+          { qos: 1, retain: false },
+          (error) => {
+            if (error) {
+              console.error(error);
+            }
+          }
+        );
       });
     } else {
       console.log("Huh??!!");
+      client.publish(
+        topicResponse2,
+        "Not APPROVED",
+        { qos: 1, retain: false },
+        (error) => {
+          if (error) {
+            console.error(error);
+          }
+        }
+      );
     }
   });
 });
