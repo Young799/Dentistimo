@@ -1,5 +1,6 @@
 const mqtt = require("mqtt");
 const mongoose = require("mongoose");
+const CircuitBreaker = require("opossum");
 
 let mongoURI =
   process.env.MONGODB_URI ||
@@ -25,27 +26,19 @@ let Dentist = require("./models/Dentist");
 const Appointment = require("./models/Appointment");
 
 //MQTT
-let options = { clientId: "mqtt03", clean: true };
+let optionsMQTT = { clientId: "mqtt03", clean: true };
 
-let client = mqtt.connect("mqtt://localhost:1883", options);
+let client = mqtt.connect("mqtt://localhost:1883", optionsMQTT);
 
 let topic = "newappointment";
 let topicResponse1 = "ui/approved";
 let topicResponse2 = "ui/notapproved";
 
-client.on("connect", () => {
-  console.log("Connected Now!!");
-  client.subscribe([topic], () => {
-    console.log(`Subscribed to ${topic}`);
-  });
-});
+//CIRCUIT BREAKER
 
-client.on("message", (topic, payload) => {
-  // data = payload.toJSON();
-  // for (item in data){
-  // console.log(payload)}
-
-  console.log(payload.toString());
+function requestHandler(topic, payload) {
+  // METHOD
+  console.log(topic, payload.toString());
 
   let request = JSON.parse(payload);
 
@@ -130,4 +123,27 @@ client.on("message", (topic, payload) => {
       );
     }
   });
+
+  return "Yes!";
+  // !METHOD
+}
+
+const options = {
+  timeout: 3000, // If our function takes longer than 3 seconds, trigger a failure
+  errorThresholdPercentage: 50, // When 50% of requests fail, trip the circuit
+  resetTimeout: 30000, // After 30 seconds, try again.
+};
+const breaker = new CircuitBreaker(requestHandler, options);
+
+//MQTT
+
+client.on("connect", () => {
+  console.log("Connected Now!!");
+  client.subscribe([topic], () => {
+    console.log(`Subscribed to ${topic}`);
+  });
+});
+
+client.on("message", (topic, payload) => {
+  breaker.fire(topic, payload).then(console.log).catch(console.error);
 });
