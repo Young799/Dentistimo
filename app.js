@@ -1,6 +1,7 @@
 const mqtt = require("mqtt");
 const mongoose = require("mongoose");
 const CircuitBreaker = require("opossum");
+const requestHandler = require('./controller/requestcontroller')
 
 let mongoURI =
   process.env.MONGODB_URI ||
@@ -28,114 +29,22 @@ const Appointment = require("./models/Appointment");
 //MQTT
 let optionsMQTT = { clientId: "mqtt03", clean: true };
 
-let client = mqtt.connect("mqtt://localhost:1883", optionsMQTT);
+global.client = mqtt.connect("mqtt://localhost:1883", optionsMQTT);
 
 let topic = "newappointment";
-let topicResponse1 = "ui/approved";
-let topicResponse2 = "ui/notapproved";
+// let topicResponse1 = "ui/approved";
+// let topicResponse2 = "ui/notapproved";
 
 //CIRCUIT BREAKER
-
-function requestHandler(topic, payload) {
-  // METHOD
-  console.log(topic, payload.toString());
-
-  let request = JSON.parse(payload);
-
-  let numberOfDentists = request.numberOfDentists;
-  let numberOfAppointments = 0;
-
-  console.log("Dentists: ", numberOfDentists);
-
-  let newRequest = {
-    name: request.name,
-    user: request.user,
-    start: request.start,
-    end: request.end,
-    dentist: request.dentist,
-    color: request.color,
-  };
-
-  console.log("New Request Incoming: ", newRequest);
-  console.log("Current Dentist: ", request.dentist);
-
-  //get all appointment from the clinic
-
-  Appointment.find({ dentist: request.dentist }, function (err, appointments) {
-    if (err) {
-      return next(err);
-    }
-
-    let appointmentsArray = appointments;
-
-    console.log("Appointemnts!!", appointments);
-    appointmentsArray.forEach((appointment) => {
-      console.log(appointment.start);
-      if (appointment.start == request.start) {
-        numberOfAppointments++;
-      }
-
-      //Duplicate User
-      if (
-        appointment.start == request.start &&
-        appointment.user == request.user
-      ) {
-        numberOfAppointments += 3;
-      }
-    });
-    console.log("Current Appointments ", numberOfAppointments);
-
-    if (numberOfAppointments < numberOfDentists) {
-      //confirm the new booking
-      console.log("Slot Available!!!");
-
-      let newAppointment = new Appointment(newRequest);
-
-      newAppointment.save(function (error, savedAppointment) {
-        if (error) {
-          console.log(error);
-        }
-
-        console.log(savedAppointment);
-
-        client.publish(
-          topicResponse1,
-          "APPROVED",
-          { qos: 1, retain: false },
-          (error) => {
-            if (error) {
-              console.error(error);
-            }
-          }
-        );
-      });
-    } else {
-      console.log("Huh??!!");
-      client.publish(
-        topicResponse2,
-        "Not APPROVED",
-        { qos: 1, retain: false },
-        (error) => {
-          if (error) {
-            console.error(error);
-          }
-        }
-      );
-    }
-  });
-
-  return "Yes!";
-  // !METHOD
-}
 
 const options = {
   timeout: 3000, // If our function takes longer than 3 seconds, trigger a failure
   errorThresholdPercentage: 50, // When 50% of requests fail, trip the circuit
   resetTimeout: 30000, // After 30 seconds, try again.
 };
-const breaker = new CircuitBreaker(requestHandler, options);
+const breaker = new CircuitBreaker(requestHandler.requestHandler, options);
 
-//MQTT
+//MQTT CONNECTION
 
 client.on("connect", () => {
   console.log("Connected Now!!");
