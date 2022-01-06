@@ -20,20 +20,12 @@ mongoose.connect(
   }
 );
 
-//User
-//Check
-
-let Dentist = require("./models/Dentist");
-const Appointment = require("./models/Appointment");
-
 //MQTT
 let optionsMQTT = { clientId: "mqtt03", clean: true };
 
 global.client = mqtt.connect("mqtt://localhost:1883", optionsMQTT);
 
 let topic = "newappointment";
-// let topicResponse1 = "ui/approved";
-// let topicResponse2 = "ui/notapproved";
 
 //CIRCUIT BREAKER
 
