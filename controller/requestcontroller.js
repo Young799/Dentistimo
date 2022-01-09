@@ -8,149 +8,159 @@ let topicResponse3 = "ui/allreadyapproved";
 
 module.exports = {
   requestHandler: function (topic, payload) {
-    // METHOD
-    console.log(topic, payload.toString());
 
-    let request = JSON.parse(payload);
 
-    let numberOfDentists = request.numberOfDentists;
-    let numberOfAppointments = 0;
 
-    console.log("Dentists: ", numberOfDentists);
+      return new Promise((resolve, reject) => {
+        // Do something, maybe on the network or a disk
 
-    let newRequest = {
-      name: request.name,
-      user: request.user,
-      start: request.start,
-      end: request.end,
-      dentist: request.dentist,
-      issuance: request.issuance,
-      color: request.color,
-    };
+        // METHOD
+        console.log(topic, payload.toString());
 
-    console.log("New Request Incoming: ", newRequest);
-    console.log("Current Dentist: ", request.dentist);
+        let request = JSON.parse(payload);
 
-    //get all appointment from the clinic
+        let numberOfDentists = request.numberOfDentists;
+        let numberOfAppointments = 0;
 
-    Appointment.find(
-      { dentist: request.dentist },
-      function (err, appointments) {
-        if (err) {
-          return next(err);
-        }
+        console.log("Dentists: ", numberOfDentists);
 
-        let appointmentsArray = appointments;
+        let newRequest = {
+          name: request.name,
+          user: request.user,
+          start: request.start,
+          end: request.end,
+          dentist: request.dentist,
+          issuance: request.issuance,
+          color: request.color,
+        };
 
-        console.log("Appointemnts!!", appointments);
+        console.log("New Request Incoming: ", newRequest);
+        console.log("Current Dentist: ", request.dentist);
 
-        //Check Availability
-        appointmentsArray.forEach((appointment) => {
-          console.log(appointment.start);
-          if (appointment.start == request.start) {
-            numberOfAppointments++;
-          }
+        //get all appointment from the clinic
 
-          //Duplicate User
-          if (
-            appointment.start == request.start &&
-            appointment.user == request.user
-          ) {
-            numberOfAppointments = 99;
-          }
-        });
-        console.log("Current Appointments ", numberOfAppointments);
-
-        if (numberOfAppointments < numberOfDentists) {
-          //confirm the new booking
-          console.log("Slot Available!!!");
-
-          let newAppointment = new Appointment(newRequest);
-
-          newAppointment.save(function (error, savedAppointment) {
-            if (error) {
-              console.log(error);
+        Appointment.find(
+          { dentist: request.dentist },
+          function (err, appointments) {
+            if (err) {
+              return next(err);
             }
 
-            console.log(savedAppointment);
+            let appointmentsArray = appointments;
 
-            //Response
+            // console.log("Appointemnts!!", appointments);
 
-            let response = {
-              userid: request.user,
-              requestid: request.issuance,
-              time: request.start,
-            };
+            //Check Availability
+            appointmentsArray.forEach((appointment) => {
+              // console.log(appointment.start);
+              if (appointment.start == request.start) {
+                numberOfAppointments++;
+              }
 
-            let responseString = JSON.stringify(response);
+              //Duplicate User
+              if (
+                appointment.start == request.start &&
+                appointment.user == request.user
+              ) {
+                numberOfAppointments = 99;
+              }
+            });
+            console.log("Current Appointments ", numberOfAppointments);
 
-            client.publish(
-              topicResponse1,
-              responseString,
-              { qos: 1, retain: false },
-              (error) => {
+            if (numberOfAppointments < numberOfDentists) {
+              //confirm the new booking
+              console.log("Slot Available");
+
+              let newAppointment = new Appointment(newRequest);
+
+              newAppointment.save(function (error, savedAppointment) {
                 if (error) {
-                  console.error(error);
+                  console.log(error);
                 }
-              }
-            );
-          });
-        }
-        //Fully Booked
-        else if (numberOfAppointments == numberOfDentists) {
-          console.log("Timeslot Is Fully Booked!");
 
-          //Response
+                console.log(savedAppointment);
 
-          let response = {
-            userid: request.user,
-            requestid: request.issuance,
-            time: "none",
-          };
+                //Response
 
-          let responseString = JSON.stringify(response);
+                let response = {
+                  userid: request.user,
+                  requestid: request.issuance,
+                  time: request.start,
+                };
 
-          client.publish(
-            topicResponse2,
-            responseString,
-            { qos: 1, retain: false },
-            (error) => {
-              if (error) {
-                console.error(error);
-              }
+                let responseString = JSON.stringify(response);
+
+                client.publish(
+                  topicResponse1,
+                  responseString,
+                  { qos: 1, retain: false },
+                  (error) => {
+                    if (error) {
+                      console.error(error);
+                    }
+                  }
+                );
+              });
+
+              resolve("New Appointment Confirmed")
             }
-          );
-        }
-        //Double Booking
-        else if (numberOfAppointments > numberOfDentists) {
-          console.log("User Allready Has An Appointment At This Time");
+            //Fully Booked
+            else if (numberOfAppointments == numberOfDentists) {
+              console.log("Timeslot Is Fully Booked!");
 
-          //Response
+              //Response
 
-          let response = {
-            userid: request.user,
-            requestid: request.issuance,
-            time: "none",
-          };
+              let response = {
+                userid: request.user,
+                requestid: request.issuance,
+                time: "none",
+              };
 
-          let responseString = JSON.stringify(response);
+              let responseString = JSON.stringify(response);
 
-          client.publish(
-            topicResponse3,
-            responseString,
-            { qos: 1, retain: false },
-            (error) => {
-              if (error) {
-                console.error(error);
-              }
+              client.publish(
+                topicResponse2,
+                responseString,
+                { qos: 1, retain: false },
+                (error) => {
+                  if (error) {
+                    console.error(error);
+                  }
+                }
+              );
+
+              reject()
             }
-          );
-        }
-      }
-    );
+            //Double Booking
+            else if (numberOfAppointments > numberOfDentists) {
+              console.log("User Allready Has An Appointment At This Time");
 
-    return "Yes!";
-    // !METHOD
+              //Response
+
+              let response = {
+                userid: request.user,
+                requestid: request.issuance,
+                time: "none",
+              };
+
+              let responseString = JSON.stringify(response);
+
+              client.publish(
+                topicResponse3,
+                responseString,
+                { qos: 1, retain: false },
+                (error) => {
+                  if (error) {
+                    console.error(error);
+                  }
+                }
+              );
+
+              reject()
+            }
+          }
+        );
+      });
   },
 };
 
