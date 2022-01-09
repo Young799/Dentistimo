@@ -31,7 +31,7 @@ let topic = "newappointment";
 
 const options = {
   timeout: 1000, // If our function takes longer than 3 seconds, trigger a failure
-  errorThresholdPercentage: 90, // When 50% of requests fail, trip the circuit
+  errorThresholdPercentage: 25, // When 50% of requests fail, trip the circuit
   resetTimeout: 15000, // After 30 seconds, try again.
 };
 const breaker = new CircuitBreaker(requestHandler.requestHandler, options);
@@ -56,13 +56,4 @@ client.on("connect", () => {
 
 client.on("message", (topic, payload) => {
   breaker.fire(topic, payload).then(console.log).catch(console.error);
-
-  // breaker.fallback(() => "Sorry, out of service right now");
-  // breaker.on("fallback", (result) => console.log("Fallback", result));
-
-  // breaker.open(() => "Open, ");
-  // breaker.on("open", () => console.log("Circuit Breaker Open"));
-
-  // breaker.close(() => "Closed, ");
-  // breaker.on("close", () => console.log("Circuit Breaker Closed"));
 });
