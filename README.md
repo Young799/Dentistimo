@@ -20,6 +20,10 @@ MQTT for inter component traffic.
 
 Mongoose for communication with the Database.
 
+-Opossum
+
+Opossum Circuit Breaker for Fault Tolerance
+
 ## Installation
 
 To Install the Component run the following command from the terminal or command prompt:
