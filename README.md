@@ -12,7 +12,7 @@ The component uses the following dependencies:
 
 To run this application Node js is required to be installed.
 
--MQTT
+-MQTT js
 
 MQTT for inter component traffic.
 
@@ -24,13 +24,14 @@ Mongoose for communication with the Database.
 
 To Install the Component run the following command from the terminal or command prompt:
 
-npm install
+> *npm install*
 
 
 ## Start Application
 
 To run the application from terminal or command prompt:
 
-node app.js
+> *node app.js*
+
 
 
